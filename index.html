@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>لوحة المدرس - كيمياء</title>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+  <!-- pdf.js لاستخراج النص من PDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <style>
+    body { font-family: 'Tajawal', sans-serif; background: #f5f5f5; margin: 0; padding: 0; min-height: 100vh; display: flex; }
+    .sidebar { width: 280px; background: white; box-shadow: 4px 0 20px rgba(0,0,0,0.1); position: fixed; top: 0; bottom: 0; right: 0; z-index: 100; }
+    .sidebar-header { background: #D32F2F; color: white; padding: 30px 20px; text-align: center; font-size: 22px; font-weight: 700; }
+    .menu-item { display: flex; align-items: center; padding: 18px 30px; color: #555; text-decoration: none; font-size: 18px; transition: all 0.3s; }
+    .menu-item:hover { background: #f0f0f0; color: #D32F2F; }
+    .menu-item.active { background: #D32F2F; color: white; font-weight: 700; }
+    .menu-icon { font-size: 28px; margin-left: 16px; }
+    .main-content { flex: 1; padding: 40px 30px; margin-right: 280px; box-sizing: border-box; }
+    .box { background: white; max-width: 600px; margin: 0 auto; border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); overflow: hidden; }
+    .header { background: #D32F2F; color: white; padding: 20px; text-align: center; font-size: 20px; font-weight: 700; }
+    .content { padding: 30px; }
+    label { display: block; margin-bottom: 10px; font-weight: 500; }
+    input[type="text"], input[type="file"] { width: 100%; padding: 14px; border-radius: 12px; border: 1px solid #ddd; background: #fafafa; font-size: 16px; box-sizing: border-box; margin-bottom: 20px; }
+    button { width: 100%; padding: 16px; background: #D32F2F; color: white; border: none; border-radius: 12px; font-size: 18px; font-weight: 700; cursor: pointer; }
+    button:hover { background: #b71c1c; }
+    #status { margin-top: 20px; text-align: center; color: #333; font-size: 15px; line-height: 1.6; }
+    .loading { color: #D32F2F; font-weight: bold; }
+    @media (max-width: 768px) { .sidebar { width: 100%; height: auto; position: relative; } .main-content { margin-right: 0; padding: 20px; } body { flex-direction: column; } }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <div class="sidebar-header">📚 كيمياء تفاعلية</div>
+    <div class="sidebar-menu">
+      <a href="index.html" class="menu-item active"><span class="menu-icon">👨‍🏫</span> لوحة المدرس</a>
+      <a href="student.html" class="menu-item"><span class="menu-icon">👨‍🎓</span> صفحة الطالب</a>
+      <a href="stats.html" class="menu-item"><span class="menu-icon">📊</span> الإحصائيات</a>
+    </div>
+  </div>
+
+  <div class="main-content">
+    <div class="box">
+      <div class="header">إضافة درس كيمياء جديد</div>
+      <div class="content">
+        <label>اسم الدرس</label>
+        <input type="text" id="lessonName" placeholder="مثال: الترابط الأيوني">
+
+        <label>رفع ملف PDF للشرح (اختياري)</label>
+        <input type="file" id="pdfFile" accept=".pdf">
+
+        <label>أو رفع ملف صوتي للدرس (اختياري)</label>
+        <input type="file" id="audioFile" accept="audio/*">
+
+        <button onclick="addLesson()">إضافة الدرس وتدريب البرنامج</button>
+        <div id="status"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+    const statusDiv = document.getElementById('status');
+    let referenceText = '';
+
+    // استخراج نص من PDF
+    async function extractFromPDF(file) {
+      statusDiv.innerHTML = '<span class="loading">جاري استخراج النص من الـ PDF...</span>';
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      let fullText = '';
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const textContent = await page.getTextContent();
+        fullText += textContent.items.map(item => item.str).join(' ') + '\n';
+      }
+      return fullText.trim();
+    }
+
+    // استخراج نص من Audio باستخدام Speech Recognition
+    function extractFromAudio(file) {
+      return new Promise((resolve) => {
+        statusDiv.innerHTML = '<span class="loading">جاري تشغيل الصوت وتحويله لنص... (هياخد وقت حسب طول الصوت)</span>';
+        const url = URL.createObjectURL(file);
+        const audio = new Audio(url);
+        audio.play();
+
+        const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+        recognition.lang = 'ar-SA';
+        recognition.continuous = true;
+        recognition.interimResults = true;
+
+        let finalText = '';
+        recognition.onresult = (event) => {
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            if (event.results[i].isFinal) {
+              finalText += event.results[i][0].transcript + ' ';
+            }
+          }
+        };
+
+        recognition.onend = () => {
+          audio.pause();
+          resolve(finalText.trim() || 'لم يتم التعرف على نص من الصوت');
+        };
+
+        recognition.onerror = () => {
+          audio.pause();
+          resolve('خطأ في تحويل الصوت');
+        };
+
+        recognition.start();
+      });
+    }
+
+    async function addLesson() {
+      const name = document.getElementById('lessonName').value.trim();
+      const pdfFile = document.getElementById('pdfFile').files[0];
+      const audioFile = document.getElementById('audioFile').files[0];
+
+      if (!name) {
+        alert('⚠️ اكتب اسم الدرس');
+        return;
+      }
+      if (!pdfFile && !audioFile) {
+        alert('⚠️ ارفع PDF أو ملف صوتي');
+        return;
+      }
+
+      if (pdfFile) {
+        referenceText = await extractFromPDF(pdfFile);
+      } else if (audioFile) {
+        referenceText = await extractFromAudio(audioFile);
+      }
+
+      let lessons = JSON.parse(localStorage.getItem('chemLessons')) || [];
+      lessons.push({ name, reference: referenceText, scores: [] });
+      localStorage.setItem('chemLessons', JSON.stringify(lessons));
+
+      statusDiv.innerHTML = `
+        <strong style="color:green;">✅ تم إضافة الدرس بنجاح!</strong><br>
+        النص المستخرج (أول 300 حرف):<br>
+        <em>${referenceText.substring(0, 300)}...</em>
+      `;
+
+      // مسح الحقول
+      document.getElementById('lessonName').value = '';
+      document.getElementById('pdfFile').value = '';
+      document.getElementById('audioFile').value = '';
+    }
+  </script>
+</body>
+</html>
