@@ -15,10 +15,10 @@
     .title { font-size: 28px; color: #D32F2F; margin-bottom: 30px; }
     button { padding: 18px 36px; font-size: 20px; background: #D32F2F; color: white; border: none; border-radius: 16px; cursor: pointer; margin: 10px; }
     button:hover { background: #b71c1c; }
-    #result { margin-top: 40px; font-size: 24px; text-align: center; padding: 20px; border-radius: 16px; min-height: 100px; }
-    .good { background: #e8f5e9; color: green; }
-    .average { background: #fff3e0; color: orange; }
-    .poor { background: #ffebee; color: red; }
+    #result { margin-top: 40px; font-size: 24px; text-align: center; padding: 30px; border-radius: 16px; min-height: 100px; max-width: 90%; }
+    .good { background: #e8f5e9; color: green; border: 2px solid green; }
+    .average { background: #fff3e0; color: orange; border: 2px solid orange; }
+    .poor { background: #ffebee; color: red; border: 2px solid red; }
     @media (max-width: 768px) { .sidebar { width: 100%; height: auto; position: relative; } .main-content { margin-right: 0; } }
   </style>
 </head>
@@ -26,7 +26,7 @@
   <div class="sidebar">
     <div class="sidebar-header">📚 كيمياء تفاعلية</div>
     <div class="sidebar-menu">
-      <a href="index.html" class="menu-item"><span class="menu-icon">👨‍🏫</span> لوحة المدرس</a>
+      <a href="admin.html" class="menu-item"><span class="menu-icon">👨‍🏫</span> لوحة المدرس</a>
       <a href="student.html" class="menu-item"><span class="menu-icon">👨‍🎓</span> صفحة الطالب</a>
       <a href="stats.html" class="menu-item"><span class="menu-icon">📊</span> الإحصائيات</a>
     </div>
@@ -46,37 +46,75 @@
     const lesson = lessons[index];
     document.getElementById('lessonTitle').textContent = lesson?.name || 'درس غير معروف';
 
+    // قائمة stop words عربية شائعة
+    const stopWords = new Set(['ال', 'في', 'من', 'على', 'و', 'إلى', 'أن', 'هو', 'هي', 'هم', 'هن', 'كان', 'يكون', 'أو', 'لا', 'مع', 'بعد', 'قبل', 'لـ', 'بـ', 'ت', 'ي', 'ن', 'ا', 'ة', 'ات', 'ون', 'ين']);
+
+    // كلمات كيميائية مهمة (أمثلة، ممكن المدرس يعدلها)
+    const keyChemistryWords = ['أيون', 'ذرة', 'إلكترون', 'بروتون', 'نيوترون', 'ترابط', 'تساهمي', 'أيوني', 'معادلة', 'تفاعل', 'حمض', 'قاعدة', 'ملح', 'أكسدة', 'اختزال', 'جدول', 'دوري', 'عنصر', 'مركب'];
+
+    function cleanText(text) {
+      return text.toLowerCase()
+        .replace(/[^\u0600-\u06FF\w\s]/g, ' ') // إزالة علامات الترقيم
+        .split(' ')
+        .filter(word => word.length > 2 && !stopWords.has(word))
+        .join(' ');
+    }
+
+    function cosineSimilarity(str1, str2) {
+      const words1 = cleanText(str1).split(' ');
+      const words2 = cleanText(str2).split(' ');
+
+      const allWords = new Set([...words1, ...words2]);
+      const vec1 = [];
+      const vec2 = [];
+
+      for (let word of allWords) {
+        let score1 = words1.filter(w => w === word).length;
+        let score2 = words2.filter(w => w === word).length;
+
+        // وزن إضافي للكلمات الكيميائية المهمة
+        if (keyChemistryWords.some(k => word.includes(k))) {
+          score1 *= 2;
+          score2 *= 2;
+        }
+
+        vec1.push(score1);
+        vec2.push(score2);
+      }
+
+      const dotProduct = vec1.reduce((sum, v, i) => sum + v * vec2[i], 0);
+      const mag1 = Math.sqrt(vec1.reduce((sum, v) => sum + v * v, 0));
+      const mag2 = Math.sqrt(vec2.reduce((sum, v) => sum + v * v, 0));
+
+      if (mag1 === 0 || mag2 === 0) return 0;
+      return Math.round((dotProduct / (mag1 * mag2)) * 100);
+    }
+
+    function getGrade(score) {
+      if (score >= 80) return { text: 'ممتاز جدًا ⭐⭐', class: 'good' };
+      if (score >= 65) return { text: 'جيد جدًا 👍', class: 'good' };
+      if (score >= 50) return { text: 'جيد 👍', class: 'average' };
+      if (score >= 30) return { text: 'مقبول، يحتاج تحسين', class: 'average' };
+      return { text: 'يحتاج مراجعة كبيرة ❌', class: 'poor' };
+    }
+
     const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
     recognition.lang = 'ar-SA';
     recognition.continuous = false;
 
-    function jaccardSimilarity(a, b) {
-      const setA = new Set(a.toLowerCase().split(' '));
-      const setB = new Set(b.toLowerCase().split(' '));
-      let intersection = 0;
-      for (let word of setA) if (setB.has(word)) intersection++;
-      const union = setA.size + setB.size - intersection;
-      return union === 0 ? 0 : Math.round((intersection / union) * 100);
-    }
-
-    function getGrade(score) {
-      if (score >= 80) return { text: 'ممتاز ⭐', class: 'good' };
-      if (score >= 60) return { text: 'جيد 👍', class: 'average' };
-      return { text: 'يحتاج تحسين ❌', class: 'poor' };
-    }
-
     function startListening() {
-      document.getElementById('result').textContent = '🎙️ جاري الاستماع...';
+      document.getElementById('result').innerHTML = '<div style="color:#D32F2F;">🎙️ جاري الاستماع... تكلم بوضوح</div>';
       recognition.start();
+
       recognition.onresult = (e) => {
-        const summary = e.results[0][0].transcript;
-        const score = jaccardSimilarity(summary, lesson.reference);
+        const summary = e.results[0][0].transcript.trim();
+        const score = cosineSimilarity(summary, lesson.reference);
         const grade = getGrade(score);
 
         document.getElementById('result').innerHTML = `
-          تلخيصك: <strong>${summary}</strong><br><br>
-          نسبة التشابه: <strong>${score}%</strong><br>
-          التقييم: <strong>${grade.text}</strong>
+          <strong>تلخيصك:</strong><br>"${summary}"<br><br>
+          <strong>نسبة الفهم والتلخيص:</strong> ${score}%<br>
+          <strong>التقييم:</strong> ${grade.text}
         `;
         document.getElementById('result').className = grade.class;
 
@@ -84,12 +122,16 @@
         lessons[index].scores.push(score);
         localStorage.setItem('chemLessons', JSON.stringify(lessons));
       };
-      recognition.onerror = () => document.getElementById('result').textContent = '❌ خطأ، جرب تاني';
+
+      recognition.onerror = () => {
+        document.getElementById('result').innerHTML = '<div style="color:red;">❌ خطأ في الاستماع، جرب تاني أو تحقق من المايك</div>';
+      };
     }
 
     function readReference() {
       const utter = new SpeechSynthesisUtterance(lesson.reference);
       utter.lang = 'ar-SA';
+      utter.rate = 0.9; // أبطأ شوية عشان يبقى واضح
       speechSynthesis.speak(utter);
     }
   </script>
