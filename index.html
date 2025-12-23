@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>لوحة المدرس - كيمياء</title>
   <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
-  <!-- pdf.js لاستخراج النص من PDF -->
+  <!-- pdf.js لاستخراج النص من PDF بدقة عالية -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <style>
     body { font-family: 'Tajawal', sans-serif; background: #f5f5f5; margin: 0; padding: 0; min-height: 100vh; display: flex; }
@@ -16,15 +16,17 @@
     .menu-item.active { background: #D32F2F; color: white; font-weight: 700; }
     .menu-icon { font-size: 28px; margin-left: 16px; }
     .main-content { flex: 1; padding: 40px 30px; margin-right: 280px; box-sizing: border-box; }
-    .box { background: white; max-width: 600px; margin: 0 auto; border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); overflow: hidden; }
+    .box { background: white; max-width: 700px; margin: 0 auto; border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); overflow: hidden; }
     .header { background: #D32F2F; color: white; padding: 20px; text-align: center; font-size: 20px; font-weight: 700; }
     .content { padding: 30px; }
-    label { display: block; margin-bottom: 10px; font-weight: 500; }
+    label { display: block; margin-bottom: 10px; font-weight: 500; color: #333; }
     input[type="text"], input[type="file"] { width: 100%; padding: 14px; border-radius: 12px; border: 1px solid #ddd; background: #fafafa; font-size: 16px; box-sizing: border-box; margin-bottom: 20px; }
-    button { width: 100%; padding: 16px; background: #D32F2F; color: white; border: none; border-radius: 12px; font-size: 18px; font-weight: 700; cursor: pointer; }
+    textarea { width: 100%; padding: 14px; border-radius: 12px; border: 1px solid #ddd; background: #fafafa; font-size: 16px; height: 250px; resize: vertical; margin-bottom: 20px; }
+    button { width: 100%; padding: 16px; background: #D32F2F; color: white; border: none; border-radius: 12px; font-size: 18px; font-weight: 700; cursor: pointer; transition: background 0.3s; }
     button:hover { background: #b71c1c; }
-    #status { margin-top: 20px; text-align: center; color: #333; font-size: 15px; line-height: 1.6; }
-    .loading { color: #D32F2F; font-weight: bold; }
+    #status { margin-top: 20px; text-align: center; padding: 15px; border-radius: 12px; font-size: 16px; }
+    .success { background: #e8f5e9; color: green; }
+    .info { background: #e3f2fd; color: #1976d2; }
     @media (max-width: 768px) { .sidebar { width: 100%; height: auto; position: relative; } .main-content { margin-right: 0; padding: 20px; } body { flex-direction: column; } }
   </style>
 </head>
@@ -32,7 +34,7 @@
   <div class="sidebar">
     <div class="sidebar-header">📚 كيمياء تفاعلية</div>
     <div class="sidebar-menu">
-      <a href="index.html" class="menu-item active"><span class="menu-icon">👨‍🏫</span> لوحة المدرس</a>
+      <a href="admin.html" class="menu-item active"><span class="menu-icon">👨‍🏫</span> لوحة المدرس</a>
       <a href="student.html" class="menu-item"><span class="menu-icon">👨‍🎓</span> صفحة الطالب</a>
       <a href="stats.html" class="menu-item"><span class="menu-icon">📊</span> الإحصائيات</a>
     </div>
@@ -45,13 +47,13 @@
         <label>اسم الدرس</label>
         <input type="text" id="lessonName" placeholder="مثال: الترابط الأيوني">
 
-        <label>رفع ملف PDF للشرح (اختياري)</label>
+        <label>رفع ملف PDF للشرح (اختياري - هيستخرج النص تلقائيًا)</label>
         <input type="file" id="pdfFile" accept=".pdf">
 
-        <label>أو رفع ملف صوتي للدرس (اختياري)</label>
-        <input type="file" id="audioFile" accept="audio/*">
+        <label>أو اكتب/الصق التلخيص المرجعي يدويًا هنا (مفضل للدقة)</label>
+        <textarea id="manualText" placeholder="الصق النص من PDF أو اكتب النقاط الرئيسية اللي عايز الطالب يلخصها..."></textarea>
 
-        <button onclick="addLesson()">إضافة الدرس وتدريب البرنامج</button>
+        <button onclick="addLesson()">إضافة الدرس</button>
         <div id="status"></div>
       </div>
     </div>
@@ -61,92 +63,60 @@
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
     const statusDiv = document.getElementById('status');
-    let referenceText = '';
 
-    // استخراج نص من PDF
     async function extractFromPDF(file) {
-      statusDiv.innerHTML = '<span class="loading">جاري استخراج النص من الـ PDF...</span>';
+      statusDiv.innerHTML = '<div class="info">جاري استخراج النص من الـ PDF... (ممكن ياخد ثواني)</div>';
       const arrayBuffer = await file.arrayBuffer();
       const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
       let fullText = '';
       for (let i = 1; i <= pdf.numPages; i++) {
         const page = await pdf.getPage(i);
         const textContent = await page.getTextContent();
-        fullText += textContent.items.map(item => item.str).join(' ') + '\n';
+        fullText += textContent.items.map(item => item.str).join(' ') + ' ';
       }
       return fullText.trim();
-    }
-
-    // استخراج نص من Audio باستخدام Speech Recognition
-    function extractFromAudio(file) {
-      return new Promise((resolve) => {
-        statusDiv.innerHTML = '<span class="loading">جاري تشغيل الصوت وتحويله لنص... (هياخد وقت حسب طول الصوت)</span>';
-        const url = URL.createObjectURL(file);
-        const audio = new Audio(url);
-        audio.play();
-
-        const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-        recognition.lang = 'ar-SA';
-        recognition.continuous = true;
-        recognition.interimResults = true;
-
-        let finalText = '';
-        recognition.onresult = (event) => {
-          for (let i = event.resultIndex; i < event.results.length; i++) {
-            if (event.results[i].isFinal) {
-              finalText += event.results[i][0].transcript + ' ';
-            }
-          }
-        };
-
-        recognition.onend = () => {
-          audio.pause();
-          resolve(finalText.trim() || 'لم يتم التعرف على نص من الصوت');
-        };
-
-        recognition.onerror = () => {
-          audio.pause();
-          resolve('خطأ في تحويل الصوت');
-        };
-
-        recognition.start();
-      });
     }
 
     async function addLesson() {
       const name = document.getElementById('lessonName').value.trim();
       const pdfFile = document.getElementById('pdfFile').files[0];
-      const audioFile = document.getElementById('audioFile').files[0];
+      const manualText = document.getElementById('manualText').value.trim();
 
       if (!name) {
         alert('⚠️ اكتب اسم الدرس');
         return;
       }
-      if (!pdfFile && !audioFile) {
-        alert('⚠️ ارفع PDF أو ملف صوتي');
-        return;
-      }
+
+      let referenceText = manualText;
 
       if (pdfFile) {
-        referenceText = await extractFromPDF(pdfFile);
-      } else if (audioFile) {
-        referenceText = await extractFromAudio(audioFile);
+        if (manualText) {
+          if (!confirm('عندك نص مكتوب وPDF معًا، عايز تستخدم النص من PDF ولا النص المكتوب؟ (OK = PDF, Cancel = المكتوب)')) {
+            referenceText = manualText;
+          } else {
+            referenceText = await extractFromPDF(pdfFile);
+          }
+        } else {
+          referenceText = await extractFromPDF(pdfFile);
+        }
+      } else if (!manualText) {
+        alert('⚠️ ارفع PDF أو اكتب التلخيص يدويًا');
+        return;
       }
 
       let lessons = JSON.parse(localStorage.getItem('chemLessons')) || [];
       lessons.push({ name, reference: referenceText, scores: [] });
       localStorage.setItem('chemLessons', JSON.stringify(lessons));
 
-      statusDiv.innerHTML = `
-        <strong style="color:green;">✅ تم إضافة الدرس بنجاح!</strong><br>
-        النص المستخرج (أول 300 حرف):<br>
-        <em>${referenceText.substring(0, 300)}...</em>
-      `;
+      statusDiv.innerHTML = `<div class="success">
+        ✅ تم إضافة الدرس "${name}" بنجاح!<br>
+        <small>النص المرجعي محفوظ (طول: ${referenceText.length} حرف)</small>
+      </div>`;
 
       // مسح الحقول
       document.getElementById('lessonName').value = '';
       document.getElementById('pdfFile').value = '';
-      document.getElementById('audioFile').value = '';
+      document.getElementById('manualText').value = '';
     }
   </script>
 </body>
