@@ -1,52 +1,52 @@
-!DOCTYPE html
-html lang=ar dir=rtl
-head
-  meta charset=UTF-8
-  meta name=viewport content=width=device-width, initial-scale=1.0
-  titleتقييم شفهي - كيمياءtitle
-  link href=httpsfonts.googleapis.comcss2family=Tajawalwght@400;500;700&display=swap rel=stylesheet
-  style
-    body { font-family 'Tajawal', sans-serif; background #f5f5f5; margin 0; padding 0; min-height 100vh; display flex; }
-    .sidebar { width 280px; background white; box-shadow 4px 0 20px rgba(0,0,0,0.1); position fixed; top 0; bottom 0; right 0; z-index 100; }
-    .sidebar-header { background #D32F2F; color white; padding 30px 20px; text-align center; font-size 22px; font-weight 700; }
-    .menu-item { display flex; align-items center; padding 18px 30px; color #555; text-decoration none; font-size 18px; transition all 0.3s; }
-    .menu-itemhover { background #f0f0f0; color #D32F2F; }
-    .main-content { flex 1; padding 40px; margin-right 280px; display flex; flex-direction column; align-items center; justify-content center; }
-    .title { font-size 28px; color #D32F2F; margin-bottom 30px; }
-    button { padding 18px 36px; font-size 20px; background #D32F2F; color white; border none; border-radius 16px; cursor pointer; margin 10px; }
-    buttonhover { background #b71c1c; }
-    #result { margin-top 40px; font-size 24px; text-align center; padding 20px; border-radius 16px; min-height 100px; }
-    .good { background #e8f5e9; color green; }
-    .average { background #fff3e0; color orange; }
-    .poor { background #ffebee; color red; }
-    @media (max-width 768px) { .sidebar { width 100%; height auto; position relative; } .main-content { margin-right 0; } }
-  style
-head
-body
-  div class=sidebar
-    div class=sidebar-header📚 كيمياء تفاعليةdiv
-    div class=sidebar-menu
-      a href=index.html class=menu-itemspan class=menu-icon👨‍🏫span لوحة المدرسa
-      a href=student.html class=menu-itemspan class=menu-icon👨‍🎓span صفحة الطالبa
-      a href=stats.html class=menu-itemspan class=menu-icon📊span الإحصائياتa
-    div
-  div
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>تقييم شفهي - كيمياء</title>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Tajawal', sans-serif; background: #f5f5f5; margin: 0; padding: 0; min-height: 100vh; display: flex; }
+    .sidebar { width: 280px; background: white; box-shadow: 4px 0 20px rgba(0,0,0,0.1); position: fixed; top: 0; bottom: 0; right: 0; z-index: 100; }
+    .sidebar-header { background: #D32F2F; color: white; padding: 30px 20px; text-align: center; font-size: 22px; font-weight: 700; }
+    .menu-item { display: flex; align-items: center; padding: 18px 30px; color: #555; text-decoration: none; font-size: 18px; transition: all 0.3s; }
+    .menu-item:hover { background: #f0f0f0; color: #D32F2F; }
+    .main-content { flex: 1; padding: 40px; margin-right: 280px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .title { font-size: 28px; color: #D32F2F; margin-bottom: 30px; }
+    button { padding: 18px 36px; font-size: 20px; background: #D32F2F; color: white; border: none; border-radius: 16px; cursor: pointer; margin: 10px; }
+    button:hover { background: #b71c1c; }
+    #result { margin-top: 40px; font-size: 24px; text-align: center; padding: 20px; border-radius: 16px; min-height: 100px; }
+    .good { background: #e8f5e9; color: green; }
+    .average { background: #fff3e0; color: orange; }
+    .poor { background: #ffebee; color: red; }
+    @media (max-width: 768px) { .sidebar { width: 100%; height: auto; position: relative; } .main-content { margin-right: 0; } }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <div class="sidebar-header">📚 كيمياء تفاعلية</div>
+    <div class="sidebar-menu">
+      <a href="index.html" class="menu-item"><span class="menu-icon">👨‍🏫</span> لوحة المدرس</a>
+      <a href="student.html" class="menu-item"><span class="menu-icon">👨‍🎓</span> صفحة الطالب</a>
+      <a href="stats.html" class="menu-item"><span class="menu-icon">📊</span> الإحصائيات</a>
+    </div>
+  </div>
 
-  div class=main-content
-    h2 class=title id=lessonTitleh2
-    p style=font-size20px;لخص الدرس بصوتك دلوقتي...p
-    button onclick=startListening()🎤 ابدأ التلخيصbutton
-    button onclick=readReference()🔊 اسمع التلخيص المرجعيbutton
-    div id=resultdiv
-  div
+  <div class="main-content">
+    <h2 class="title" id="lessonTitle"></h2>
+    <p style="font-size:20px;">لخص الدرس بصوتك دلوقتي...</p>
+    <button onclick="startListening()">🎤 ابدأ التلخيص</button>
+    <button onclick="readReference()">🔊 اسمع التلخيص المرجعي</button>
+    <div id="result"></div>
+  </div>
 
-  script
-    const lessons = JSON.parse(localStorage.getItem('chemLessons'))  [];
+  <script>
+    const lessons = JSON.parse(localStorage.getItem('chemLessons')) || [];
     const index = localStorage.getItem('currentLessonIndex');
     const lesson = lessons[index];
-    document.getElementById('lessonTitle').textContent = lesson.name  'درس غير معروف';
+    document.getElementById('lessonTitle').textContent = lesson?.name || 'درس غير معروف';
 
-    const recognition = new (window.SpeechRecognition  window.webkitSpeechRecognition)();
+    const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
     recognition.lang = 'ar-SA';
     recognition.continuous = false;
 
@@ -56,35 +56,35 @@ body
       let intersection = 0;
       for (let word of setA) if (setB.has(word)) intersection++;
       const union = setA.size + setB.size - intersection;
-      return union === 0  0  Math.round((intersection  union)  100);
+      return union === 0 ? 0 : Math.round((intersection / union) * 100);
     }
 
     function getGrade(score) {
-      if (score = 80) return { text 'ممتاز ⭐', class 'good' };
-      if (score = 60) return { text 'جيد 👍', class 'average' };
-      return { text 'يحتاج تحسين ❌', class 'poor' };
+      if (score >= 80) return { text: 'ممتاز ⭐', class: 'good' };
+      if (score >= 60) return { text: 'جيد 👍', class: 'average' };
+      return { text: 'يحتاج تحسين ❌', class: 'poor' };
     }
 
     function startListening() {
       document.getElementById('result').textContent = '🎙️ جاري الاستماع...';
       recognition.start();
-      recognition.onresult = (e) = {
+      recognition.onresult = (e) => {
         const summary = e.results[0][0].transcript;
         const score = jaccardSimilarity(summary, lesson.reference);
         const grade = getGrade(score);
 
         document.getElementById('result').innerHTML = `
-          تلخيصك strong${summary}strongbrbr
-          نسبة التشابه strong${score}%strongbr
-          التقييم strong${grade.text}strong
+          تلخيصك: <strong>${summary}</strong><br><br>
+          نسبة التشابه: <strong>${score}%</strong><br>
+          التقييم: <strong>${grade.text}</strong>
         `;
         document.getElementById('result').className = grade.class;
 
-         حفظ النتيجة
+        // حفظ النتيجة
         lessons[index].scores.push(score);
         localStorage.setItem('chemLessons', JSON.stringify(lessons));
       };
-      recognition.onerror = () = document.getElementById('result').textContent = '❌ خطأ، جرب تاني';
+      recognition.onerror = () => document.getElementById('result').textContent = '❌ خطأ، جرب تاني';
     }
 
     function readReference() {
@@ -92,6 +92,6 @@ body
       utter.lang = 'ar-SA';
       speechSynthesis.speak(utter);
     }
-  script
-body
-html
+  </script>
+</body>
+</html>
